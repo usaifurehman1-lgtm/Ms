@@ -1,3 +1,29 @@
 plugins {
-    id 'com.android.application' version '8.13.0' apply false
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.offlinemesh.chat'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId 'com.offlinemesh.chat'
+        minSdk 24
+        targetSdk 35
+        versionCode 1
+        versionName '1.0'
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.7.1'
+    implementation 'com.google.android.material:material:1.13.0'
+
+    // WebRTC: audio/video call engine
+    implementation 'io.github.webrtc-sdk:android:125.6422.07'
 }
