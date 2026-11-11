@@ -1,0 +1,23 @@
+// Audio call
+callBridge.startAudioCall();
+
+// Video call
+callBridge.startVideoCall();
+
+// Incoming call accept
+callBridge.acceptCall();
+
+// Microphone mute/unmute
+callBridge.toggleMute();
+
+// Camera on/off
+callBridge.toggleCamera();
+
+// Speaker on/off
+callBridge.toggleSpeaker();
+
+// Front/back camera
+callBridge.switchCamera();
+
+// End call
+callBridge.endCall();
