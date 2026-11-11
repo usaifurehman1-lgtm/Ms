@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#0b141a">
+<title>HAYE Status</title>
+
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#0b141a;color:#fff;font-family:Arial,sans-serif}
+button{border:0;border-radius:9px;padding:11px 14px;font-weight:bold;cursor:pointer;background:#d6ad45;color:#111}
+button:disabled{opacity:.4;cursor:not-allowed}
+input,textarea{font:inherit}
+header{background:#202c33;padding:13px 15px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #34434b;position:sticky;top:0;z-index:20}
+header h2{margin:0;color:#e5bd55}
+.container{max-width:650px;margin:auto;padding:13px}
+.card{background:#202c33;border-radius:13px;padding:14px;margin-bottom:14px}
+.gold{color:#e5bd55}
+.notice{font-size:12px;color:#aebac1;line-height:1.5}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.actions button{flex:1;min-width:100px}
+textarea,.text-input{width:100%;padding:12px;border:1px solid #43545d;border-radius:9px;background:#111b21;color:white}
+textarea{min-height:100px;resize:vertical}
+input[type=file]{display:none}
+.file-label{display:inline-block;background:#34434b;padding:12px;border-radius:9px;cursor:pointer;margin:4px}
+.small-btn{padding:8px 10px;min-width:auto}
+.danger{background:#a83232;color:white}
+.empty{color:#9baab2;text-align:center;padding:18px}
+#message{color:#e5bd55;min-height:22px;font-size:13px;overflow-wrap:anywhere}
+hr{border-color:#34434b}
+.back-button{background:#34434b;color:white}
+#statusPage{display:none}
+#cameraPreview,#videoPreview{width:100%;max-height:280px;background:#000;border-radius:10px;margin-top:10px}
+.record-box{background:#111b21;padding:12px;border-radius:10px;margin-top:10px}
+#voiceTimer{font-size:24px;color:#e5bd55;margin:12px 0}
+.selected-item,.status-card{background:#111b21;border-radius:10px;padding:11px;margin:8px 0;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.selected-item span{flex:1;overflow-wrap:anywhere}
+.status-card p{margin:6px 0}
+#statusList{display:grid;gap:8px}
+
+/* HOME AND STORIES */
+.home-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.home-top h3{margin:0}
+.story-section{background:#202c33;border-radius:13px;padding:13px 8px;margin-bottom:14px}
+.story-heading{padding:0 8px 10px;color:#e5bd55;font-size:17px;font-weight:bold}
+.story-row{display:flex;gap:15px;overflow-x:auto;padding:5px 8px 12px;scrollbar-width:none}
+.story-row::-webkit-scrollbar{display:none}
+.story-person{min-width:75px;width:75px;text-align:center;cursor:pointer}
+.story-ring{width:70px;height:70px;margin:auto;border-radius:50%;padding:3px;background:linear-gradient(45deg,#feda75,#fa7e1e,#d62976,#962fbf,#4f5bd5)}
+.story-ring.seen{background:#65727a}
+.story-avatar{width:100%;height:100%;border-radius:50%;border:3px solid #202c33;background:#111b21;display:flex;align-items:center;justify-content:center;font-size:26px;overflow:hidden}
+.story-avatar img{width:100%;height:100%;object-fit:cover}
+.story-name{font-size:12px;margin-top:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.add-story{position:relative}
+.add-story-plus{position:absolute;right:0;bottom:0;width:23px;height:23px;border-radius:50%;background:#2388ff;color:white;border:2px solid #202c33;display:flex;align-items:center;justify-content:center}
+.add-profile-row{display:flex;gap:7px;padding:8px}
+.add-profile-row input{flex:1;min-width:0}
+.feed-title{color:#e5bd55;margin:18px 0 10px}
+.feed-post{background:#202c33;border-radius:13px;margin-bottom:15px;overflow:hidden}
+.feed-head{display:flex;align-items:center;gap:10px;padding:12px}
+.feed-avatar{width:38px;height:38px;border-radius:50%;background:#34434b;display:flex;align-items:center;justify-content:center;font-size:20px;overflow:hidden}
+.feed-avatar img{width:100%;height:100%;object-fit:cover}
+.feed-user{font-weight:bold;flex:1}
+.feed-media{width:100%;max-height:480px;object-fit:contain;background:#080808;display:block}
+.feed-text{padding:22px 15px;text-align:center;white-space:pre-wrap;overflow-wrap:anywhere;font-size:22px;background:#17232a}
+.feed-actions{display:flex;gap:17px;padding:10px 13px;font-size:23px}
+.feed-actions button{background:transparent;color:white;padding:2px;font-size:23px}
+.feed-caption{padding:0 13px 13px;font-size:13px;line-height:1.5}
+.feed-caption small{color:#aebac1}
+
+/* STORY VIEWER */
+#viewer{display:none;position:fixed;inset:0;background:#000;z-index:1000;flex-direction:column}
+.viewer-progress{display:flex;gap:4px;padding:10px 8px 5px;background:#000}
+.progress-segment{height:3px;flex:1;background:#596067;border-radius:5px;overflow:hidden}
+.progress-fill{height:100%;width:0;background:#fff}
+.progress-fill.done{width:100%}
+.progress-fill.active{animation:storyProgress linear forwards}
+@keyframes storyProgress{from{width:0}to{width:100%}}
+.viewer-top{display:flex;align-items:center;gap:10px;padding:8px 12px 12px;background:#000}
+.viewer-avatar{width:36px;height:36px;border-radius:50%;background:#34434b;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.viewer-avatar img{width:100%;height:100%;object-fit:cover}
+.viewer-user-info{flex:1}
+.viewer-user-name{font-weight:bold;font-size:14px}
+.viewer-time{font-size:11px;color:#aaa;margin-top:3px}
+.viewer-close{background:transparent;color:white;font-size:24px;padding:5px 10px}
+.viewer-content{flex:1;display:flex;justify-content:center;align-items:center;position:relative;overflow:hidden;background:#000;touch-action:pan-y}
+.viewer-content img,.viewer-content video{max-width:100%;max-height:100%;object-fit:contain}
+.viewer-content audio{width:85%}
+.viewer-text{font-size:27px;line-height:1.5;text-align:center;white-space:pre-wrap;overflow-wrap:anywhere;padding:25px}
+.viewer-bottom{display:flex;align-items:center;gap:9px;padding:12px;background:#000}
+#replyInput{flex:1;min-width:0;border:1px solid #aaa;border-radius:25px;padding:12px 15px;color:white;background:transparent}
+.viewer-action{background:transparent;color:white;font-size:25px;padding:7px}
+#viewerCounter{color:#aaa;text-align:center;font-size:12px;padding:4px}
+#viewerProgress{width:100%}
+.media-error{color:#ff9999;text-align:center;padding:20px}
+#viewerContent{cursor:pointer}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#273740;color:white;padding:11px 16px;border-radius:20px;display:none;z-index:2000;max-width:90%;text-align:center;font-size:13px}
+.profile-modal{position:fixed;inset:0;background:#000b;z-index:900;display:none;align-items:center;justify-content:center;padding:20px}
+.profile-box{width:100%;max-width:380px;background:#202c33;border-radius:14px;padding:18px}
+.profile-box input{margin:8px 0}
+</style>
+</head>
+
+<body>
+
+<header>
+<h2>HAYE</h2>
+<button id="backButton" class="back-button" hidden>← Back</button>
+</header>
+
+<main class="container" id="homePage">
+
+<div class="home-top">
+<h3>🏠 Home</h3>
+<button id="createStatusButton">＋ Create Status</button>
+</div>
+
+<section class="story-section">
+<div class="story-heading">Stories</div>
+<div class="story-row" id="storyRow"></div>
+<p class="notice" style="padding:0 8px">Profile पर दबाकर उसकी Story देखें।</p>
+<div class="add-profile-row">
+<input id="newProfileName" class="text-input" type="text" maxlength="25" placeholder="नया Profile नाम">
+<button id="addProfileButton">＋ Add</button>
+</div>
+</section>
+
+<h3 class="feed-title">📷 Feed</h3>
+<div id="feedList"></div>
+
+<section class="card">
+<h3 class="gold">My Status</h3>
+<div id="homeStatusList" class="empty">कोई Status मौजूद नहीं है।</div>
+</section>
+</main>
+
+<main class="container" id="statusPage">
+<section class="card">
+<h3 class="gold">Create Status</h3>
+<p class="notice">एक Status में अधिकतम 6 Content जोड़ सकते हैं। हर Photo, Video और Audio फ़ाइल की अधिकतम सीमा 200 MB है।</p>
+<textarea id="textInput" maxlength="1000" placeholder="अपना Text Status लिखें..."></textarea>
+<div class="actions"><button id="addTextBtn">＋ Add Text</button></div>
+<hr>
+<h3>📷 Photo</h3>
+<label class="file-label" for="photoCamera">📸 Camera Photo</label>
+<input id="photoCamera" type="file" accept="image/*" capture="environment">
+<label class="file-label" for="photoInput">🖼️ Gallery Photo</label>
+<input id="photoInput" type="file" accept="image/*" multiple>
+<hr>
+<h3>🎬 Video</h3>
+<label class="file-label" for="videoCamera">📹 Record Video</label>
+<input id="videoCamera" type="file" accept="video/*" capture="environment">
+<label class="file-label" for="videoInput">🎞️ Gallery Video</label>
+<input id="videoInput" type="file" accept="video/*" multiple>
+<div class="record-box">
+<h4>Live Video Recording</h4>
+<video id="cameraPreview" autoplay muted playsinline hidden></video>
+<div class="actions">
+<button id="openCameraBtn">Open Camera</button>
+<button id="startVideoBtn" disabled>● Record</button>
+<button id="stopVideoBtn" disabled>■ Stop</button>
+<button id="addVideoBtn" disabled>＋ Add Video</button>
+</div>
+</div>
+<hr>
+<h3>🎵 Audio</h3>
+<label class="file-label" for="audioInput">🎵 Select Audio</label>
+<input id="audioInput" type="file" accept="audio/*" multiple>
+<hr>
+<h3>🎙️ Voice Recording</h3>
+<div id="voiceTimer">00:00</div>
+<div class="actions">
+<button id="startVoiceBtn">▶ Start Voice</button>
+<button id="stopVoiceBtn" disabled>■ Stop</button>
+<button id="addVoiceBtn" disabled>＋ Add Voice</button>
+</div>
+<audio id="voicePreview" controls hidden style="width:100%"></audio>
+<hr>
+<h3>इस Status में Content</h3>
+<p class="notice">एक Status में अधिकतम 6 आइटम। ऊपर-नीचे करके क्रम बदलें।</p>
+<div id="itemList" class="empty">अभी कोई Content नहीं जोड़ा गया।</div>
+<div class="actions">
+<button id="publishBtn">✓ Publish Status</button>
+<button id="clearBtn" class="danger">Clear All</button>
+</div>
+<p id="message"></p>
+</section>
+
+<section class="card">
+<h3 class="gold">My Status</h3>
+<div id="statusList" class="empty">कोई Status मौजूद नहीं है।</div>
+</section>
+<p class="notice">Status इस डिवाइस के IndexedDB में सेव होता है और 24 घंटे बाद हट जाता है।</p>
+</main>
+
+<!-- STORY VIEWER -->
+<section id="viewer">
+<div class="viewer-progress" id="viewerProgress"></div>
+<div class="viewer-top">
+<div class="viewer-avatar" id="viewerAvatar">👤</div>
+<div class="viewer-user-info">
+<div class="viewer-user-name" id="viewerUserName">My Status</div>
+<div class="viewer-time" id="viewerTime"></div>
+</div>
+<button class="viewer-close" id="closeViewer">✕</button>
+</div>
+<div class="viewer-content" id="viewerContent"></div>
+<div id="viewerCounter">1/1</div>
+<div class="viewer-bottom">
+<input id="replyInput" type="text" placeholder="Reply to story..." maxlength="300">
+<button class="viewer-action" id="likeButton">♡</button>
+<button class="viewer-action" id="shareButton">➤</button>
+</div>
+</section>
+
+<div id="profileModal" class="profile-modal">
+<div class="profile-box">
+<h3 class="gold">Create Profile</h3>
+<input id="profileNameInput" class="text-input" maxlength="25" placeholder="Profile Name">
+<div class="actions">
+<button id="saveProfileButton">Save</button>
+<button id="cancelProfileButton" class="danger">Cancel</button>
+</div>
+</div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+"use strict";
+
+const DB_NAME="HAYE_STATUS_DATABASE";
+const DB_VERSION=2;
+const STORE_NAME="statusPosts";
+const PROFILE_STORE="profiles";
+const MAX_ITEMS=6;
+const MAX_FILE_SIZE=200*1024*1024;
+const STATUS_DURATION=24*60*60*1000;
+const STORY_IMAGE_TIME=5000;
+const STORY_TEXT_TIME=6000;
+
+let database=null;
+let draftItems=[];
+let voiceRecorder=null;
+let microphoneStream=null;
+let voiceChunks=[];
+let voiceBlob=null;
+let voiceObjectURL=null;
+let voiceTimerInterval=null;
+let voiceStartedAt=0;
+let videoRecorder=null;
+let cameraStream=null;
+let videoChunks=[];
+let recordedVideoBlob=null;
+let recordedVideoURL=null;
+let activePost=null;
+let activeIndex=0;
+let activeObjectURL=null;
+let storyTimer=null;
+let storyPaused=false;
+let touchStartX=0;
+let touchStartY=0;
+let isLiked=false;
+let profiles=[];
+let currentProfileId="me";
+let feedLikes=new Set();
+
+const $=id=>document.getElementById(id);
+const makeId=()=>crypto.randomUUID?crypto.randomUUID():Date.now()+"-"+Math.random().toString(16).slice(2);
+
+function toast(message){
+const el=$("toast");
+el.textContent=message;
+el.style.display="block";
+clearTimeout(toast.timer);
+toast.timer=setTimeout(()=>el.style.display="none",2600);
+}
+function showMessage(message){$("message").textContent=message}
+
+/* DATABASE */
+function openDatabase(){
+return new Promise((resolve,reject)=>{
+const request=indexedDB.open(DB_NAME,DB_VERSION);
+request.onupgradeneeded=e=>{
+const db=e.target.result;
+if(!db.objectStoreNames.contains(STORE_NAME))db.createObjectStore(STORE_NAME,{keyPath:"id"});
+if(!db.objectStoreNames.contains(PROFILE_STORE))db.createObjectStore(PROFILE_STORE,{keyPath:"id"});
+};
+request.onsuccess=()=>{database=request.result;database.onversionchange=()=>database.close();resolve(database)};
+request.onerror=()=>reject(request.error);
+});
+}
+function dbRequest(storeName,mode,callback){
+return new Promise((resolve,reject)=>{
+const tx=database.transaction(storeName,mode);
+const store=tx.objectStore(storeName);
+let result;
+let req;
+try{
+req=callback(store);
+if(req){req.onsuccess=()=>result=req.result;req.onerror=()=>reject(req.error)}
+}catch(e){reject(e);return}
+tx.oncomplete=()=>resolve(result);
+tx.onerror=()=>reject(tx.error);
+tx.onabort=()=>reject(tx.error||new Error("Database transaction aborted"));
+});
+}
+const savePost=post=>dbRequest(STORE_NAME,"readwrite",s=>s.put(post));
+const getAllPosts=()=>dbRequest(STORE_NAME,"readonly",s=>s.getAll());
+const removePost=id=>dbRequest(STORE_NAME,"readwrite",s=>s.delete(id));
+const saveProfile=p=>dbRequest(PROFILE_STORE,"readwrite",s=>s.put(p));
+const getAllProfiles=()=>dbRequest(PROFILE_STORE,"readonly",s=>s.getAll());
+
+/* NAVIGATION */
+function openStatusPage(){
+$("homePage").style.display="none";
+$("statusPage").style.display="block";
+$("backButton").hidden=false;
+renderStatuses();
+window.scrollTo(0,0);
+}
+function openHomePage(){
+closeViewer();
+stopCamera();
+$("statusPage").style.display="none";
+$("homePage").style.display="block";
+$("backButton").hidden=true;
+renderHome();
+window.scrollTo(0,0);
+}
+$("createStatusButton").onclick=openStatusPage;
+$("backButton").onclick=openHomePage;
+
+/* PROFILE SYSTEM */
+async function loadProfiles(){
+profiles=await getAllProfiles();
+if(!profiles.some(p=>p.id==="me")){
+const me={id:"me",name:"Your Status",avatar:"👤",createdAt:Date.now(),demo:false};
+await saveProfile(me);
+profiles.push(me);
+}
+}
+function showProfileModal(){
+$("profileModal").style.display="flex";
+$("profileNameInput").value="";
+$("profileNameInput").focus();
+}
+$("addProfileButton").onclick=showProfileModal;
+$("cancelProfileButton").onclick=()=>$("profileModal").style.display="none";
+$("saveProfileButton").onclick=async()=>{
+const name=$("profileNameInput").value.trim();
+if(!name){toast("Profile का नाम लिखें।");return}
+const profile={id:makeId(),name,avatar:"👤",createdAt:Date.now(),demo:false};
+await saveProfile(profile);
+profiles.push(profile);
+$("profileModal").style.display="none";
+renderHome();
+toast("Profile बन गया।");
+};
+
+/* DRAFT */
+function renderDraft(){
+const box=$("itemList");
+box.replaceChildren();
+if(!draftItems.length){
+box.className="empty";
+box.textContent="अभी कोई Content नहीं जोड़ा गया।";
+return;
+}
+box.className="";
+const labels={text:"📝 Text",image:"📷 Photo",video:"🎬 Video",audio:"🎵 Audio",voice:"🎙️ Voice"};
+draftItems.forEach((item,index)=>{
+const row=document.createElement("div");
+row.className="selected-item";
+const title=document.createElement("span");
+title.textContent=(index+1)+". "+labels[item.kind]+(item.name?" — "+item.name:"");
+const controls=document.createElement("div");
+const up=document.createElement("button");
+up.className="small-btn";up.textContent="↑";up.disabled=index===0;
+up.onclick=()=>{[draftItems[index-1],draftItems[index]]=[draftItems[index],draftItems[index-1]];renderDraft()};
+const down=document.createElement("button");
+down.className="small-btn";down.textContent="↓";down.disabled=index===draftItems.length-1;
+down.onclick=()=>{[draftItems[index],draftItems[index+1]]=[draftItems[index+1],draftItems[index]];renderDraft()};
+const del=document.createElement("button");
+del.className="small-btn danger";del.textContent="✕";
+del.onclick=()=>{draftItems.splice(index,1);renderDraft()};
+controls.append(up,down,del);row.append(title,controls);box.append(row);
+});
+}
+function addDraftItem(item){
+if(draftItems.length>=MAX_ITEMS){showMessage("एक Status में अधिकतम 6 Content जोड़ सकते हैं।");return false}
+draftItems.push(item);renderDraft();return true;
+}
+$("addTextBtn").onclick=()=>{
+const text=$("textInput").value.trim();
+if(!text){showMessage("पहले Text लिखें।");return}
+if(addDraftItem({kind:"text",text,name:"Text Status"})){
+$("textInput").value="";showMessage("Text जोड़ दिया गया।");
+}
+};
+
+/* FILES */
+function addFiles(files,kind){
+let added=0,skipped=0;
+for(const file of Array.from(files||[])){
+if(draftItems.length>=MAX_ITEMS){skipped++;continue}
+const valid=kind==="image"?file.type.startsWith("image/"):kind==="video"?file.type.startsWith("video/"):file.type.startsWith("audio/");
+if(!valid||file.size>MAX_FILE_SIZE){skipped++;continue}
+if(addDraftItem({kind,blob:file,name:file.name,mimeType:file.type}))added++;
+}
+showMessage(added+" फ़ाइलें जोड़ी गईं।"+(skipped?" "+skipped+" फ़ाइलें नहीं जोड़ी गईं।":""));
+}
+["photoInput","photoCamera"].forEach(id=>$(id).onchange=e=>{addFiles(e.target.files,"image");e.target.value=""});
+["videoInput","videoCamera"].forEach(id=>$(id).onchange=e=>{addFiles(e.target.files,"video");e.target.value=""});
+$("audioInput").onchange=e=>{addFiles(e.target.files,"audio");e.target.value=""};
+
+/* VOICE */
+function formatTime(ms){const s=Math.floor(ms/1000);return String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0")}
+function releaseMicrophone(){if(microphoneStream){microphoneStream.getTracks().forEach(t=>t.stop());microphoneStream=null}}
+function audioType(){
+if(!window.MediaRecorder)return "";
+return ["audio/webm;codecs=opus","audio/webm","audio/mp4","audio/ogg;codecs=opus"].find(t=>MediaRecorder.isTypeSupported(t))||"";
+}
+async function startVoiceRecording(){
+try{
+if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder)throw Error("Microphone के लिए HTTPS या localhost और MediaRecorder जरूरी है।");
+microphoneStream=await navigator.mediaDevices.getUserMedia({audio:true});
+voiceChunks=[];voiceBlob=null;
+voiceRecorder=new MediaRecorder(microphoneStream,audioType()?{mimeType:audioType()}:{});
+voiceRecorder.ondataavailable=e=>{if(e.data?.size)voiceChunks.push(e.data)};
+voiceRecorder.onstop=()=>{
+voiceBlob=new Blob(voiceChunks,{type:voiceRecorder.mimeType||"audio/webm"});
+releaseMicrophone();
+if(!voiceBlob.size){showMessage("Voice Recording खाली है।");return}
+if(voiceObjectURL)URL.revokeObjectURL(voiceObjectURL);
+voiceObjectURL=URL.createObjectURL(voiceBlob);
+$("voicePreview").src=voiceObjectURL;$("voicePreview").hidden=false;
+$("addVoiceBtn").disabled=false;$("startVoiceBtn").disabled=false;
+showMessage("Voice तैयार है। Preview करके Add Voice दबाएँ।");
+};
+voiceRecorder.start(500);voiceStartedAt=Date.now();
+voiceTimerInterval=setInterval(()=>$("voiceTimer").textContent=formatTime(Date.now()-voiceStartedAt),250);
+$("startVoiceBtn").disabled=true;$("stopVoiceBtn").disabled=false;$("addVoiceBtn").disabled=true;
+showMessage("Voice Recording शुरू हो गई है।");
+}catch(e){releaseMicrophone();showMessage(e.message)}
+}
+function stopVoiceRecording(){
+if(!voiceRecorder||voiceRecorder.state!=="recording")return;
+clearInterval(voiceTimerInterval);voiceTimerInterval=null;
+$("voiceTimer").textContent=formatTime(Date.now()-voiceStartedAt);
+$("stopVoiceBtn").disabled=true;voiceRecorder.stop();
+}
+function addVoiceToDraft(){
+if(!voiceBlob?.size){showMessage("पहले Voice Record करें।");return}
+if(!addDraftItem({kind:"voice",blob:voiceBlob,name:"Voice Recording",mimeType:voiceBlob.type}))return;
+$("voicePreview").pause();$("voicePreview").hidden=true;$("voicePreview").removeAttribute("src");$("voicePreview").load();
+if(voiceObjectURL)URL.revokeObjectURL(voiceObjectURL);
+voiceObjectURL=null;voiceBlob=null;voiceChunks=[];
+$("addVoiceBtn").disabled=true;$("startVoiceBtn").disabled=false;
+showMessage("Voice Status में जोड़ दी गई।");
+}
+$("startVoiceBtn").onclick=startVoiceRecording;
+$("stopVoiceBtn").onclick=stopVoiceRecording;
+$("addVoiceBtn").onclick=addVoiceToDraft;
+
+/* VIDEO CAMERA */
+async function openCamera(){
+try{
+if(!navigator.mediaDevices?.getUserMedia)throw Error("Camera के लिए HTTPS या localhost जरूरी है।");
+stopCamera();
+cameraStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"},audio:true});
+$("cameraPreview").srcObject=cameraStream;$("cameraPreview").hidden=false;$("startVideoBtn").disabled=false;
+showMessage("Camera चालू है। Record दबाएँ।");
+}catch(e){showMessage(e.message)}
+}
+function stopCamera(){
+if(cameraStream){cameraStream.getTracks().forEach(t=>t.stop());cameraStream=null}
+$("cameraPreview").srcObject=null;$("cameraPreview").hidden=true;
+$("startVideoBtn").disabled=true;
+}
+function videoType(){
+if(!window.MediaRecorder)return "";
+return ["video/webm;codecs=vp9,opus","video/webm;codecs=vp8,opus","video/webm","video/mp4"].find(t=>MediaRecorder.isTypeSupported(t))||"";
+}
+function startVideoRecording(){
+if(!cameraStream)return;
+try{
+videoChunks=[];recordedVideoBlob=null;
+const type=videoType();
+videoRecorder=new MediaRecorder(cameraStream,type?{mimeType:type}:{});
+videoRecorder.ondataavailable=e=>{if(e.data?.size)videoChunks.push(e.data)};
+videoRecorder.onstop=()=>{
+recordedVideoBlob=new Blob(videoChunks,{type:videoRecorder.mimeType||"video/webm"});
+if(recordedVideoURL)URL.revokeObjectURL(recordedVideoURL);
+recordedVideoURL=URL.createObjectURL(recordedVideoBlob);
+$("cameraPreview").srcObject=null;$("cameraPreview").src=recordedVideoURL;
+$("cameraPreview").controls=true;$("cameraPreview").muted=false;
+$("addVideoBtn").disabled=!recordedVideoBlob.size;
+$("startVideoBtn").disabled=false;$("stopVideoBtn").disabled=true;
+showMessage("Video तैयार है। Preview करके Add Video दबाएँ।");
+};
+videoRecorder.start(500);
+$("startVideoBtn").disabled=true;$("stopVideoBtn").disabled=false;$("addVideoBtn").disabled=true;
+showMessage("Video Recording शुरू हो गई है।");
+}catch(e){showMessage("Video Recording शुरू नहीं हो सकी: "+e.message)}
+}
+function stopVideoRecording(){if(videoRecorder?.state==="recording")videoRecorder.stop()}
+function addRecordedVideo(){
+if(!recordedVideoBlob?.size){showMessage("पहले Video Record करें।");return}
+if(recordedVideoBlob.size>MAX_FILE_SIZE){showMessage("Recorded Video 200 MB से बड़ी है।");return}
+if(!addDraftItem({kind:"video",blob:recordedVideoBlob,name:"Recorded Video",mimeType:recordedVideoBlob.type}))return;
+if(recordedVideoURL)URL.revokeObjectURL(recordedVideoURL);
+recordedVideoURL=null;recordedVideoBlob=null;
+$("cameraPreview").pause();$("cameraPreview").removeAttribute("src");$("cameraPreview").load();$("cameraPreview").controls=false;
+$("addVideoBtn").disabled=true;stopCamera();
+showMessage("Recorded Video Status में जोड़ दी गई।");
+}
+$("openCameraBtn").onclick=openCamera;
+$("startVideoBtn").onclick=startVideoRecording;
+$("stopVideoBtn").onclick=stopVideoRecording;
+$("addVideoBtn").onclick=addRecordedVideo;
+
+/* PUBLISH */
+async function publishStatus(){
+if(!draftItems.length){showMessage("पहले Content जोड़ें।");return}
+const post={
+id:makeId(),profileId:"me",profileName:"Your Status",
+createdAt:Date.now(),expiresAt:Date.now()+STATUS_DURATION,
+items:draftItems.map(i=>({kind:i.kind,text:i.text||"",blob:i.blob||null,name:i.name||"",mimeType:i.mimeType||""}))
+};
+try{
+$("publishBtn").disabled=true;
+await savePost(post);
+draftItems=[];renderDraft();stopCamera();
+showMessage("Status सेव हो गया।");
+await renderStatuses();await renderHome();
+}catch(e){
+showMessage("Status सेव नहीं हुआ: "+(e.name==="QuotaExceededError"?"डिवाइस की स्टोरेज भर गई है।":e.message));
+}finally{$("publishBtn").disabled=false}
+}
+$("publishBtn").onclick=publishStatus;
+$("clearBtn").onclick=()=>{draftItems=[];$("textInput").value="";renderDraft();showMessage("Draft साफ कर दिया।")};
+
+/* STATUS DATA */
+async function getValidPosts(){
+const posts=await getAllPosts(),now=Date.now(),valid=[];
+for(const p of posts){if(p.expiresAt<=now)await removePost(p.id);else valid.push(p)}
+return valid.sort((a,b)=>b.createdAt-a.createdAt);
+}
+function getProfileForPost(post){
+return profiles.find(p=>p.id===(post.profileId||"me"))||profiles.find(p=>p.id==="me");
+}
+function postProfileName(post){
+return post.profileName||getProfileForPost(post)?.name||"Your Status";
+}
+async function renderStatuses(){
+const posts=(await getValidPosts()).filter(p=>(p.profileId||"me")==="me");
+const box=$("statusList");box.replaceChildren();
+if(!posts.length){box.className="empty";box.textContent="कोई Status मौजूद नहीं है।";return}
+box.className="";
+posts.forEach(post=>{
+const card=document.createElement("div");card.className="status-card";
+const info=document.createElement("div");
+const title=document.createElement("strong");title.textContent="My Status";
+const p=document.createElement("p");p.className="notice";
+const left=Math.max(0,post.expiresAt-Date.now());
+p.textContent=post.items.length+" Items • "+Math.floor(left/3600000)+" घंटे बाकी";
+info.append(title,p);
+const buttons=document.createElement("div");
+const open=document.createElement("button");open.textContent="Open";open.onclick=()=>openViewer(post);
+const del=document.createElement("button");del.className="danger";del.textContent="Delete";
+del.onclick=async()=>{if(confirm("पूरा Status Delete करना है?")){await removePost(post.id);await renderStatuses();await renderHome()}};
+buttons.append(open,del);card.append(info,buttons);box.append(card);
+});
+}
+
+/* STORY ROW */
+function avatarElement(profile,post){
+const avatar=document.createElement("div");avatar.className="story-avatar";
+const first=post?.items?.[0];
+if(first?.kind==="image"&&first.blob){
+const img=document.createElement("img");const url=URL.createObjectURL(first.blob);
+img.src=url;img.onload=()=>URL.revokeObjectURL(url);avatar.append(img);
+}else avatar.textContent=profile?.avatar||"👤";
+return avatar;
+}
+function createStoryCircle(profile,posts,isOwn=false){
+const person=document.createElement("div");person.className="story-person";
+const ring=document.createElement("div");ring.className="story-ring";
+if(isOwn&&!posts.length)ring.classList.add("seen");
+const avatar=posts.length?avatarElement(profile,posts[0]):avatarElement(profile,null);
+if(isOwn&&!posts.length)avatar.classList.add("add-story");
+if(isOwn&&!posts.length){
+const plus=document.createElement("span");plus.className="add-story-plus";plus.textContent="+";
+avatar.append(plus);
+}
+ring.append(avatar);
+const name=document.createElement("div");name.className="story-name";
+name.textContent=isOwn?"Your Story":profile.name;
+person.append(ring,name);
+person.onclick=()=>{
+if(isOwn&&!posts.length)openStatusPage();
+else openStoryGroup(posts,profile);
+};
+return person;
+}
+async function renderHome(){
+const all=await getValidPosts();
+const row=$("storyRow");row.replaceChildren();
+const own=all.filter(p=>(p.profileId||"me")==="me");
+const ownProfile=profiles.find(p=>p.id==="me")||{id:"me",name:"Your Status",avatar:"👤"};
+row.append(createStoryCircle(ownProfile,own,true));
+const otherProfiles=profiles.filter(p=>p.id!=="me");
+otherProfiles.forEach(profile=>{
+const group=all.filter(p=>p.profileId===profile.id);
+row.append(createStoryCircle(profile,group,false));
+});
+const homeList=$("homeStatusList");homeList.replaceChildren();
+if(!own.length){homeList.className="empty";homeList.textContent="कोई Status मौजूद नहीं है।"}
+else{
+homeList.className="";
+own.forEach(post=>{
+const card=document.createElement("div");card.className="status-card";
+const info=document.createElement("div");
+const title=document.createElement("strong");title.textContent="My Status";
+const desc=document.createElement("p");desc.className="notice";desc.textContent=post.items.length+" Story Items";
+info.append(title,desc);
+const btn=document.createElement("button");btn.textContent="View";btn.onclick=()=>openViewer(post);
+card.append(info,btn);homeList.append(card);
+});
+}
+renderFeed(all);
+}
+
+/* FEED */
+function renderFeed(posts){
+const box=$("feedList");box.replaceChildren();
+const demo=[
+{id:"feed1",name:"HAYE Community",avatar:"🌟",caption:"Welcome to HAYE! यहाँ अपनी Stories और Updates शेयर करें।",text:"Welcome to HAYE ✨",time:"Demo post"},
+{id:"feed2",name:"HAYE Moments",avatar:"📸",caption:"अपना नया Status बनाएं और दोस्तों के साथ शेयर करें।",text:"Share your moments",time:"Demo post"}
+];
+const userPosts=posts.filter(p=>(p.profileId||"me")==="me");
+const entries=[...userPosts.map(p=>({id:p.id,post:p,name:"Your Status",avatar:"👤",caption:"My HAYE Status",time:"Your post"})),...demo];
+entries.forEach(entry=>{
+const card=document.createElement("article");card.className="feed-post";
+const head=document.createElement("div");head.className="feed-head";
+const av=document.createElement("div");av.className="feed-avatar";av.textContent=entry.avatar;
+const user=document.createElement("div");user.className="feed-user";user.textContent=entry.name;
+const more=document.createElement("span");more.textContent="•••";
+head.append(av,user,more);card.append(head);
+if(entry.post){
+const item=entry.post.items[0];
+if(item?.kind==="image"&&item.blob){
+const img=document.createElement("img");img.className="feed-media";img.src=URL.createObjectURL(item.blob);card.append(img);
+}else if(item?.kind==="video"&&item.blob){
+const video=document.createElement("video");video.className="feed-media";video.src=URL.createObjectURL(item.blob);video.controls=true;video.playsInline=true;card.append(video);
+}else{
+const text=document.createElement("div");text.className="feed-text";text.textContent=item?.text||"HAYE Status";card.append(text);
+}
+}else{
+const text=document.createElement("div");text.className="feed-text";text.textContent=entry.text;card.append(text);
+}
+const actions=document.createElement("div");actions.className="feed-actions";
+const like=document.createElement("button");like.textContent=feedLikes.has(entry.id)?"♥":"♡";
+like.style.color=feedLikes.has(entry.id)?"#ff3040":"white";
+like.onclick=()=>{if(feedLikes.has(entry.id))feedLikes.delete(entry.id);else feedLikes.add(entry.id);renderFeed(posts)};
+const comment=document.createElement("button");comment.textContent="▢";comment.onclick=()=>toast("Comments का local demo विकल्प।");
+const share=document.createElement("button");share.textContent="➤";share.onclick=()=>sharePost(entry);
+actions.append(like,comment,share);card.append(actions);
+const caption=document.createElement("div");caption.className="feed-caption";caption.textContent=entry.caption;
+const small=document.createElement("small");small.textContent=" • "+entry.time;caption.append(small);card.append(caption);
+if(entry.post){const view=document.createElement("button");view.style.margin="0 12px 12px";view.textContent="View Story";view.onclick=()=>openViewer(entry.post);card.append(view)}
+box.append(card);
+});
+}
+async function sharePost(entry){
+const data={title:"HAYE",text:entry.caption||"HAYE Status"};
+try{if(navigator.share)await navigator.share(data);else if(navigator.clipboard){await navigator.clipboard.writeText(data.text);toast("Share text copy हो गया।")}else toast("Share उपलब्ध नहीं है।")}catch(e){if(e.name!=="AbortError")toast("Share नहीं हो सका।")}
+}
+
+/* STORY VIEWER */
+function openStoryGroup(posts,profile){
+if(!posts.length){toast("इस Profile की कोई Story नहीं है।");return}
+const combined=[];
+posts.slice().sort((a,b)=>a.createdAt-b.createdAt).forEach(post=>{
+post.items.forEach(item=>combined.push({item,post}));
+});
+openViewer({id:"group-"+profile.id,profileId:profile.id,profileName:profile.name,createdAt:posts[0].createdAt,items:combined.map(x=>x.item),_posts:posts});
+}
+function clearStoryTimer(){if(storyTimer){clearTimeout(storyTimer);storyTimer=null}}
+function clearViewerMedia(){
+clearStoryTimer();
+if(activeObjectURL){URL.revokeObjectURL(activeObjectURL);activeObjectURL=null}
+const content=$("viewerContent");
+content.querySelectorAll("video,audio").forEach(m=>{m.pause();m.removeAttribute("src");m.load()});
+content.replaceChildren();
+}
+function openViewer(post){
+if(!post?.items?.length)return;
+activePost=post;activeIndex=0;isLiked=false;
+$("likeButton").textContent="♡";$("likeButton").style.color="white";
+$("viewer").style.display="flex";showStatusItem();
+}
+function renderProgress(){
+const box=$("viewerProgress");box.replaceChildren();
+activePost.items.forEach((item,index)=>{
+const segment=document.createElement("div");segment.className="progress-segment";
+const fill=document.createElement("div");fill.className="progress-fill";
+if(index<activeIndex)fill.classList.add("done");
+if(index===activeIndex)fill.classList.add("active");
+segment.append(fill);box.append(segment);
+});
+}
+function startStoryTimer(duration){
+clearStoryTimer();
+const fill=$("viewerProgress").children[activeIndex]?.firstElementChild;
+if(fill){fill.style.animation="none";void fill.offsetWidth;fill.style.animation="storyProgress "+duration+"ms linear forwards"}
+storyTimer=setTimeout(nextStatus,duration);
+}
+function showStatusItem(){
+if(!activePost||activeIndex>=activePost.items.length){closeViewer();return}
+clearViewerMedia();
+const item=activePost.items[activeIndex];
+const content=$("viewerContent");
+$("viewerCounter").textContent=(activeIndex+1)+"/"+activePost.items.length;
+$("viewerUserName").textContent=activePost.profileName||"My Status";
+const elapsed=Math.max(0,Date.now()-activePost.createdAt);
+$("viewerTime").textContent=elapsed<60000?"Just now":Math.floor(elapsed/60000)+"m ago";
+const profile=profiles.find(p=>p.id===activePost.profileId);
+$("viewerAvatar").textContent=profile?.avatar||"👤";
+renderProgress();
+if(item.kind==="text"){
+const text=document.createElement("div");text.className="viewer-text";text.textContent=item.text;content.append(text);startStoryTimer(STORY_TEXT_TIME);return;
+}
+if(!item.blob){const err=document.createElement("div");err.className="media-error";err.textContent="Media उपलब्ध नहीं है।";content.append(err);startStoryTimer(STORY_IMAGE_TIME);return}
+activeObjectURL=URL.createObjectURL(item.blob);
+let media;
+if(item.kind==="image"){
+media=document.createElement("img");media.src=activeObjectURL;media.alt=item.name||"Story Photo";
+content.append(media);startStoryTimer(STORY_IMAGE_TIME);
+}else if(item.kind==="video"){
+media=document.createElement("video");media.src=activeObjectURL;media.autoplay=true;media.playsInline=true;media.controls=true;media.preload="auto";
+content.append(media);media.onended=nextStatus;media.onerror=()=>toast("Video इस Browser में नहीं चल सकी।");media.play().catch(()=>{});
+}else if(item.kind==="audio"||item.kind==="voice"){
+media=document.createElement("audio");media.src=activeObjectURL;media.controls=true;media.autoplay=true;media.preload="auto";
+content.append(media);media.onended=nextStatus;media.play().catch(()=>{});
+}else{const err=document.createElement("div");err.className="media-error";err.textContent="Unknown Content";content.append(err);startStoryTimer(STORY_IMAGE_TIME)}
+}
+function nextStatus(){if(!activePost)return;if(activeIndex<activePost.items.length-1){activeIndex++;showStatusItem()}else closeViewer()}
+function previousStatus(){if(!activePost)return;if(activeIndex>0){activeIndex--;showStatusItem()}else showStatusItem()}
+function closeViewer(){
+clearViewerMedia();$("viewer").style.display="none";activePost=null;activeIndex=0;$("replyInput").value="";
+}
+$("closeViewer").onclick=closeViewer;
+$("viewerContent").addEventListener("click",e=>{
+if(e.target.closest("video,audio,button,input"))return;
+const rect=$("viewerContent").getBoundingClientRect();
+if(e.clientX<rect.left+rect.width*.35)previousStatus();else nextStatus();
+});
+document.addEventListener("keydown",e=>{
+if($("viewer").style.display!=="flex")return;
+if(e.key==="ArrowRight")nextStatus();
+if(e.key==="ArrowLeft")previousStatus();
+if(e.key==="Escape")closeViewer();
+});
+$("viewerContent").addEventListener("touchstart",e=>{
+touchStartX=e.changedTouches[0].screenX;touchStartY=e.changedTouches[0].screenY;
+},{passive:true});
+$("viewerContent").addEventListener("touchend",e=>{
+const dx=e.changedTouches[0].screenX-touchStartX;
+const dy=e.changedTouches[0].screenY-touchStartY;
+if(Math.abs(dx)>65&&Math.abs(dy)<100){dx<0?nextStatus():previousStatus()}
+},{passive:true});
+
+/* STORY ACTIONS */
+$("likeButton").onclick=()=>{
+isLiked=!isLiked;$("likeButton").textContent=isLiked?"♥":"♡";
+$("likeButton").style.color=isLiked?"#ff3040":"white";
+};
+$("replyInput").addEventListener("keydown",e=>{
+if(e.key!=="Enter")return;
+const text=$("replyInput").value.trim();
+if(!text)return;
+toast("Reply Demo: "+text);
+$("replyInput").value="";
+});
+$("shareButton").onclick=async()=>{
+if(!activePost)return;
+const data={title:"HAYE Status",text:"मेरा HAYE Status देखें।"};
+try{
+if(navigator.share)await navigator.share(data);
+else if(navigator.clipboard){await navigator.clipboard.writeText(data.text);toast("Share Text Copy हो गया।")}
+else toast("इस Browser में Share उपलब्ध नहीं है।");
+}catch(e){if(e.name!=="AbortError")toast("Share नहीं हो सका।")}
+};
+
+/* CLEANUP AND START */
+async function cleanExpired(){
+const posts=await getAllPosts(),now=Date.now();
+for(const p of posts)if(p.expiresAt<=now)await removePost(p.id);
+}
+async function startApplication(){
+try{
+await openDatabase();
+await loadProfiles();
+await cleanExpired();
+renderDraft();
+await renderStatuses();
+await renderHome();
+}catch(e){alert("Database शुरू नहीं हो सका: "+e.message)}
+}
+window.addEventListener("beforeunload",()=>{
+stopCamera();releaseMicrophone();clearInterval(voiceTimerInterval);clearStoryTimer();
+if(voiceObjectURL)URL.revokeObjectURL(voiceObjectURL);
+if(recordedVideoURL)URL.revokeObjectURL(recordedVideoURL);
+});
+startApplication();
+</script>
+</body>
+</html>
