@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HAYE Status</title>
+
+<style>
+:root {
+  --gold: #d4af37;
+  --gold-light: #f5df91;
+  --bg: #101512;
+  --panel: #1b241f;
+  --text: #f5f5f0;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Arial, sans-serif;
+}
+
+header {
+  padding: 17px;
+  background: var(--panel);
+  border-bottom: 1px solid #493d1b;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+header h2 {
+  margin: 0;
+  color: var(--gold);
+}
+
+button {
+  border: 0;
+  cursor: pointer;
+  border-radius: 10px;
+  padding: 12px;
+  font-weight: bold;
+}
+
+.gold {
+  background: linear-gradient(135deg,#f5df91,#c49a24);
+  color: #17130a;
+}
+
+.container {
+  padding: 15px;
+  max-width: 650px;
+  margin: auto;
+}
+
+.create-status {
+  display: flex;
+  gap: 13px;
+  align-items: center;
+  padding: 16px;
+  background: var(--panel);
+  border-radius: 14px;
+  margin-bottom: 20px;
+}
+
+.avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(135deg,#f5df91,#a77b12);
+  display: grid;
+  place-items: center;
+  color: #17130a;
+  font-size: 23px;
+}
+
+.create-status strong {
+  color: var(--gold-light);
+}
+
+.options {
+  display: grid;
+  grid-template-columns: repeat(2,1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.option {
+  min-height: 95px;
+  background: var(--panel);
+  color: white;
+  border: 1px solid #59491e;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 15px;
+}
+
+.option:active,
+.option:hover {
+  background: #443819;
+  outline: 2px solid var(--gold);
+}
+
+.icon {
+  font-size: 28px;
+}
+
+.section-title {
+  color: var(--gold);
+  margin: 22px 0 12px;
+}
+
+.status-card {
+  background: var(--panel);
+  border: 1px solid #493d1b;
+  padding: 12px;
+  border-radius: 12px;
+  margin-bottom: 12px;
+}
+
+.status-card video,
+.status-card img {
+  width: 100%;
+  max-height: 300px;
+  object-fit: contain;
+  border-radius: 9px;
+  background: black;
+}
+
+.status-text {
+  padding: 25px 12px;
+  background: linear-gradient(135deg,#423313,#17130a);
+  text-align: center;
+  border-radius: 9px;
+  font-size: 20px;
+  overflow-wrap: anywhere;
+}
+
+.status-meta {
+  color: #c5b987;
+  font-size: 12px;
+  margin-top: 9px;
+}
+
+.delete {
+  background: #542525;
+  color: white;
+  margin-top: 10px;
+}
+
+.empty {
+  text-align: center;
+  color: #aaa;
+  padding: 25px;
+}
+
+#composer {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  background: rgba(0,0,0,.92);
+  padding: 15px;
+  overflow-y: auto;
+}
+
+.composer-box {
+  max-width: 550px;
+  margin: 25px auto;
+  background: var(--panel);
+  border: 1px solid var(--gold);
+  border-radius: 15px;
+  padding: 18px;
+}
+
+.composer-box h3 {
+  color: var(--gold);
+}
+
+textarea {
+  width: 100%;
+  min-height: 150px;
+  resize: vertical;
+  padding: 14px;
+  border-radius: 10px;
+  background: #101512;
+  color: white;
+  border: 1px solid var(--gold);
+  font-size: 17px;
+}
+
+.preview {
+  width: 100%;
+  max-height: 300px;
+  object-fit: contain;
+  margin-top: 12px;
+  background: black;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.actions button {
+  flex: 1;
+}
+
+.close {
+  background: #393939;
+  color: white;
+}
+
+#recordingInfo {
+  color: var(--gold-light);
+  margin-top: 12px;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h2>HAYE Status</h2>
+  <span>✦ GOLD</span>
+</header>
+
+<div class="container">
+
+  <div class="create-status">
+    <div class="avatar">+</div>
+    <div>
+      <strong>My Status</strong>
+      <div style="color:#aaa;font-size:13px">
+        अपना नया स्टेटस साझा करें
+      </div>
+    </div>
+  </div>
+
+  <h3 class="section-title">Create Status</h3>
+
+  <div class="options">
+
+    <button class="option" onclick="openText()">
+      <span class="icon">✍️</span>
+      Text Status
+    </button>
+
+    <button class="option" onclick="openPicker('image')">
+      <span class="icon">🖼️</span>
+      Photo Status
+    </button>
+
+    <button class="option" onclick="openPicker('video')">
+      <span class="icon">🎬</span>
+      Video Status
+    </button>
+
+    <button class="option" onclick="openVoice()">
+      <span class="icon">🎙️</span>
+      Voice Status
+    </button>
+
+  </div>
+
+  <h3 class="section-title">My Recent Status</h3>
+  <div id="statusList"></div>
+
+</div>
+
+<div id="composer">
+  <div class="composer-box">
+
+    <h3 id="composerTitle">Create Status</h3>
+
+    <textarea id="statusText"
+      placeholder="यहाँ अपना स्टेटस लिखें..."
+      style="display:none"></textarea>
+
+    <input id="mediaInput"
+      type="file"
+      accept="image/*,video/*"
+      hidden>
+
+    <img id="imagePreview" class="preview" hidden>
+
+    <video id="videoPreview"
+      class="preview"
+      controls
+      playsinline
+      hidden></video>
+
+    <audio id="audioPreview"
+      controls
+      style="width:100%;margin-top:15px"
+      hidden></audio>
+
+    <div id="recordingInfo"></div>
+
+    <div class="actions">
+      <button class="gold" onclick="publishStatus()">
+        Publish
+      </button>
+
+      <button class="close" onclick="closeComposer()">
+        Cancel
+      </button>
+    </div>
+
+    <button id="recordButton"
+      class="gold"
+      onclick="toggleRecording()"
+      style="width:100%;margin-top:12px;display:none">
+      🎙️ Start Recording
+    </button>
+
+  </div>
+</div>
+
+<script>
+"use strict";
+
+const DB_NAME = "HAYE_STATUS_DB";
+const STORE_NAME = "statuses";
+const STATUS_LIFETIME = 24 * 60 * 60 * 1000;
+
+let db;
+let selectedFile = null;
+let selectedType = null;
+let mediaRecorder = null;
+let recordedChunks = [];
+let recordedBlob = null;
+let recordingStream = null;
+let recordingTimer = null;
+let recordingSeconds = 0;
+
+const $ = id => document.getElementById(id);
+
+function openDatabase() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, 1);
+
+    request.onupgradeneeded = event => {
+      const database = event.target.result;
+
+      if (!database.objectStoreNames.contains(STORE_NAME)) {
+        database.createObjectStore(STORE_NAME, {
+          keyPath: "id",
+          autoIncrement: true
+        });
+      }
+    };
+
+    request.onsuccess = () => {
+      db = request.result;
+      resolve(db);
+    };
+
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function saveStatus(status) {
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORE_NAME, "readwrite");
+    const request = transaction.objectStore(STORE_NAME).add(status);
+
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function getStatuses() {
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORE_NAME, "readonly");
+    const request = transaction.objectStore(STORE_NAME).getAll();
+
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function deleteStatus(id) {
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORE_NAME, "readwrite");
+    const request = transaction.objectStore(STORE_NAME).delete(id);
+
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function removeExpiredStatuses() {
+  const statuses = await getStatuses();
+  const now = Date.now();
+
+  for (const status of statuses) {
+    if (status.expiresAt <= now) {
+      await deleteStatus(status.id);
+    }
+  }
+}
+
+function openComposer(title) {
+  $("composerTitle").textContent = title;
+  $("composer").style.display = "block";
+}
+
+function closeComposer() {
+  stopRecording(false);
+  $("composer").style.display = "none";
+  resetComposer();
+}
+
+function resetComposer() {
+  selectedFile = null;
+  selectedType = null;
+  recordedBlob = null;
+
+  $("statusText").value = "";
+  $("statusText").style.display = "none";
+
+  $("imagePreview").hidden = true;
+  $("videoPreview").hidden = true;
+  $("audioPreview").hidden = true;
+
+  $("recordButton").style.display = "none";
+  $("recordingInfo").textContent = "";
+
+  $("mediaInput").value = "";
+
+  $("imagePreview").removeAttribute("src");
+  $("videoPreview").removeAttribute("src");
+  $("audioPreview").removeAttribute("src");
+}
+
+function openText() {
+  resetComposer();
+  selectedType = "text";
+  $("statusText").style.display = "block";
+  openComposer("✍️ Text Status");
+}
+
+function openPicker(type) {
+  resetComposer();
+  selectedType = type;
+
+  $("mediaInput").accept =
+    type === "image" ? "image/*" : "video/*";
+
+  $("mediaInput").onchange = event => {
+    const file = event.target.files[0];
+
+    if (!file) return;
+
+    if (type === "image" && !file.type.startsWith("image/")) {
+      alert("कृपया तस्वीर चुनें।");
+      return;
+    }
+
+    if (type === "video" && !file.type.startsWith("video/")) {
+      alert("कृपया वीडियो चुनें।");
+      return;
+    }
+
+    selectedFile = file;
+
+    const url = URL.createObjectURL(file);
+
+    if (type === "image") {
+      $("imagePreview").src = url;
+      $("imagePreview").hidden = false;
+    } else {
+      $("videoPreview").src = url;
+      $("videoPreview").hidden = false;
+    }
+  };
+
+  openComposer(
+    type === "image" ? "🖼️ Photo Status" : "🎬 Video Status"
+  );
+
+  $("mediaInput").click();
+}
+
+function openVoice() {
+  resetComposer();
+  selectedType = "voice";
+  $("recordButton").style.display = "block";
+  openComposer("🎙️ Voice Status");
+}
+
+async function toggleRecording() {
+  if (mediaRecorder && mediaRecorder.state === "recording") {
+    stopRecording(true);
+    return;
+  }
+
+  if (!navigator.mediaDevices ||
+      !navigator.mediaDevices.getUserMedia ||
+      typeof MediaRecorder === "undefined") {
+    alert("इस डिवाइस या WebView में ऑडियो रिकॉर्डिंग उपलब्ध नहीं है।");
+    return;
+  }
+
+  try {
+    recordingStream = await navigator.mediaDevices.getUserMedia({
+      audio: true
+    });
+
+    recordedChunks = [];
+
+    const mimeTypes = [
+      "audio/webm;codecs=opus",
+      "audio/webm",
+      "audio/mp4"
+    ];
+
+    const mimeType = mimeTypes.find(type =>
+      MediaRecorder.isTypeSupported(type)
+    );
+
+    mediaRecorder = mimeType
+      ? new MediaRecorder(recordingStream, { mime
