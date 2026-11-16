@@ -1,0 +1,155 @@
+package com.offlinemesh.chat;
+
+import android.app.Activity;
+import android.webkit.JavascriptInterface;
+import android.webkit.WebView;
+
+import org.json.JSONObject;
+
+public final class LocalSignalBridge {
+
+    private final Activity activity;
+    private final WebView webView;
+    private final LocalSignalManager signalManager;
+
+    public LocalSignalBridge(
+            Activity activity,
+            WebView webView
+    ) {
+        if (activity == null || webView == null) {
+            throw new IllegalArgumentException(
+                    "Activity and WebView cannot be null"
+            );
+        }
+
+        this.activity = activity;
+        this.webView = webView;
+
+        this.signalManager = new LocalSignalManager(
+                new LocalSignalManager.Listener() {
+
+                    @Override
+                    public void onSignal(JSONObject signal) {
+                        sendToJavaScript(
+                                "onLocalSignalReceived",
+                                signal
+                        );
+                    }
+
+                    @Override
+                    public void onConnected() {
+                        sendStatus("CONNECTED");
+                    }
+
+                    @Override
+                    public void onDisconnected() {
+                        sendStatus("DISCONNECTED");
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        try {
+                            JSONObject data = new JSONObject();
+                            data.put("message", error);
+                            sendToJavaScript(
+                                    "onLocalSignalError",
+                                    data
+                            );
+                        } catch (Exception ignored) {
+                        }
+                    }
+                }
+        );
+    }
+
+    @JavascriptInterface
+    public void startServer(int port) {
+        if (port < 1 || port > 65535) {
+            sendError("Invalid server port");
+            return;
+        }
+
+        signalManager.startServer(port);
+    }
+
+    @JavascriptInterface
+    public void connect(String host, int port) {
+        if (host == null || host.trim().isEmpty()) {
+            sendError("Host address is missing");
+            return;
+        }
+
+        if (port < 1 || port > 65535) {
+            sendError("Invalid connection port");
+            return;
+        }
+
+        signalManager.connect(host.trim(), port);
+    }
+
+    @JavascriptInterface
+    public void sendSignal(String json) {
+        if (json == null || json.trim().isEmpty()) {
+            sendError("Signal data is empty");
+            return;
+        }
+
+        try {
+            JSONObject signal = new JSONObject(json);
+            signalManager.send(signal);
+        } catch (Exception e) {
+            sendError("Invalid signal JSON");
+        }
+    }
+
+    @JavascriptInterface
+    public void closeConnection() {
+        signalManager.close();
+        sendStatus("CLOSED");
+    }
+
+    @JavascriptInterface
+    public String getBridgeStatus() {
+        return "LOCAL_SIGNAL_BRIDGE_READY";
+    }
+
+    private void sendStatus(String status) {
+        try {
+            JSONObject data = new JSONObject();
+            data.put("status", status);
+
+            sendToJavaScript("onLocalSignalStatus", data);
+        } catch (Exception ignored) {
+        }
+    }
+
+    private void sendError(String message) {
+        try {
+            JSONObject data = new JSONObject();
+            data.put("message", message);
+
+            sendToJavaScript("onLocalSignalError", data);
+        } catch (Exception ignored) {
+        }
+    }
+
+    private void sendToJavaScript(
+            String function,
+            JSONObject data
+    ) {
+        activity.runOnUiThread(() -> {
+            if (activity.isFinishing() ||
+                    activity.isDestroyed()) {
+                return;
+            }
+
+            String script =
+                    "if(typeof window." + function +
+                    " === 'function'){" +
+                    "window." + function +
+                    "(" + data.toString() + ");}";
+
+            webView.evaluateJavascript(script, null);
+        });
+    }
+}
