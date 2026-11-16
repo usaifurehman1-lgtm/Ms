@@ -1,0 +1,96 @@
+package com.offlinemesh.chat;
+
+import android.app.Activity;
+import android.webkit.JavascriptInterface;
+
+public final class CallBridge {
+
+    private final Activity activity;
+    private final CallActions callActions;
+
+    public interface CallActions {
+        void startAudioCall();
+        void startVideoCall();
+        void acceptCall();
+        void toggleMute();
+        void toggleCamera();
+        void toggleSpeaker();
+        void switchCamera();
+        void endCall();
+    }
+
+    public CallBridge(Activity activity, CallActions callActions) {
+        if (activity == null || callActions == null) {
+            throw new IllegalArgumentException(
+                    "Activity and CallActions cannot be null"
+            );
+        }
+
+        this.activity = activity;
+        this.callActions = callActions;
+    }
+
+    @JavascriptInterface
+    public String getBridgeStatus() {
+        return "CONNECTED";
+    }
+
+    @JavascriptInterface
+    public void startAudioCall() {
+        runCall(() -> callActions.startAudioCall());
+    }
+
+    @JavascriptInterface
+    public void startVideoCall() {
+        runCall(() -> callActions.startVideoCall());
+    }
+
+    @JavascriptInterface
+    public void acceptCall() {
+        runCall(() -> callActions.acceptCall());
+    }
+
+    @JavascriptInterface
+    public void toggleMute() {
+        runCall(() -> callActions.toggleMute());
+    }
+
+    @JavascriptInterface
+    public void toggleCamera() {
+        runCall(() -> callActions.toggleCamera());
+    }
+
+    @JavascriptInterface
+    public void toggleSpeaker() {
+        runCall(() -> callActions.toggleSpeaker());
+    }
+
+    @JavascriptInterface
+    public void switchCamera() {
+        runCall(() -> callActions.switchCamera());
+    }
+
+    @JavascriptInterface
+    public void endCall() {
+        runCall(() -> callActions.endCall());
+    }
+
+    private void runCall(Runnable action) {
+        if (activity.isFinishing() ||
+                activity.isDestroyed()) {
+            return;
+        }
+
+        activity.runOnUiThread(() -> {
+            try {
+                action.run();
+            } catch (Exception e) {
+                android.util.Log.e(
+                        "CallBridge",
+                        "Call operation failed",
+                        e
+                );
+            }
+        });
+    }
+}
