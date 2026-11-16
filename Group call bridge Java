@@ -1,0 +1,51 @@
+package com.offlinemesh.chat;
+
+import android.app.Activity;
+import android.webkit.JavascriptInterface;
+import android.webkit.WebView;
+
+import org.json.JSONObject;
+
+public class AndroidBridge {
+
+    private final Activity activity;
+    private final MainActivity mainActivity;
+    private final WebView webView;
+
+    public AndroidBridge(
+            MainActivity mainActivity,
+            WebView webView
+    ) {
+        this.mainActivity = mainActivity;
+        this.activity = mainActivity;
+        this.webView = webView;
+    }
+
+    // Bridge connection status
+    @JavascriptInterface
+    public String getBridgeStatus() {
+        return "CONNECTED";
+    }
+
+    // Search nearby Wi-Fi Direct devices
+    @JavascriptInterface
+    public void discoverPeers() {
+        activity.runOnUiThread(() ->
+                mainActivity.discoverPeers()
+        );
+    }
+
+    // Create Wi-Fi Direct group
+    @JavascriptInterface
+    public void createGroup() {
+        activity.runOnUiThread(() ->
+                mainActivity.createGroup()
+        );
+    }
+
+    // Connect to currently selected device
+    @JavascriptInterface
+    public void connectSelectedDevice() {
+        activity.runOnUiThread(() ->
+                mainActivity.connectSelected()
+        );
