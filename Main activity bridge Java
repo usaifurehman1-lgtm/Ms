@@ -1,0 +1,414 @@
+package com.offlinemesh.chat;
+
+import android.Manifest;
+import android.app.Activity;
+import android.os.Bundle;
+import android.os.Build;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.BroadcastReceiver;
+import android.content.pm.PackageManager;
+import android.net.wifi.p2p.*;
+import android.webkit.JavascriptInterface;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
+import android.widget.*;
+import android.view.View;
+import android.text.TextUtils;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class MainActivity extends Activity {
+
+    private static final int PERMISSION_REQUEST = 100;
+
+    private WifiP2pManager manager;
+    private WifiP2pManager.Channel channel;
+    private BroadcastReceiver receiver;
+    private IntentFilter filter;
+
+    private P2PMeshNode meshNode;
+
+    private WebView webView;
+    private TextView status;
+    private TextView messages;
+    private EditText input;
+    private ListView peerList;
+
+    private final List<WifiP2pDevice> devices = new ArrayList<>();
+    private ArrayAdapter<String> adapter;
+    private WifiP2pDevice selectedDevice;
+
+    private boolean receiverRegistered = false;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        createInterface();
+
+        manager = (WifiP2pManager)
+                getSystemService(Context.WIFI_P2P_SERVICE);
+
+        if (manager == null) {
+            status.setText("Wi-Fi Direct unavailable");
+            return;
+        }
+
+        channel = manager.initialize(
+                this,
+                getMainLooper(),
+                () -> status.setText("Wi-Fi Direct disconnected")
+        );
+
+        meshNode = new P2PMeshNode(
+                new P2PMeshNode.Listener() {
+                    @Override
+                    public void onStatus(String text) {
+                        runOnUiThread(() -> status.setText(text));
+                    }
+
+                    @Override
+                    public void onMessage(String sender, String message) {
+                        runOnUiThread(() ->
+                                messages.append("\n" + sender + ": " + message)
+                        );
+                    }
+                }
+        );
+
+        setupReceiver();
+        requestAppPermissions();
+    }
+
+    private void createInterface() {
+        LinearLayout root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setPadding(12, 12, 12, 12);
+
+        status = new TextView(this);
+        status.setText("Offline Mesh Chat");
+        root.addView(status);
+
+        messages = new TextView(this);
+        messages.setText("Messages:");
+        root.addView(messages);
+
+        input = new EditText(this);
+        input.setHint("Type message");
+        root.addView(input);
+
+        Button sendButton = new Button(this);
+        sendButton.setText("Send Message");
+        sendButton.setOnClickListener(v -> sendMessage());
+        root.addView(sendButton);
+
+        Button discoverButton = new Button(this);
+        discoverButton.setText("Find Nearby Devices");
+        discoverButton.setOnClickListener(v -> discoverPeers());
+        root.addView(discoverButton);
+
+        Button groupButton = new Button(this);
+        groupButton.setText("Create Wi-Fi Group");
+        groupButton.setOnClickListener(v -> createGroup());
+        root.addView(groupButton);
+
+        peerList = new ListView(this);
+
+        adapter = new ArrayAdapter<>(
+                this,
+                android.R.layout.simple_list_item_1,
+                new ArrayList<>()
+        );
+
+        peerList.setAdapter(adapter);
+
+        peerList.setOnItemClickListener((parent, view, position, id) -> {
+            if (position >= 0 && position < devices.size()) {
+                selectedDevice = devices.get(position);
+                status.setText("Selected: " + selectedDevice.deviceName);
+            }
+        });
+
+        root.addView(peerList,
+                new LinearLayout.LayoutParams(
+                        -1, 0, 1
+                )
+        );
+
+        Button connectButton = new Button(this);
+        connectButton.setText("Connect Selected Device");
+        connectButton.setOnClickListener(v -> connectSelected());
+        root.addView(connectButton);
+
+        webView = new WebView(this);
+        webView.getSettings().setJavaScriptEnabled(true);
+        webView.setWebViewClient(new WebViewClient());
+
+        webView.addJavascriptInterface(
+                new ActivityBridge(),
+                "AndroidBridge"
+        );
+
+        root.addView(webView,
+                new LinearLayout.LayoutParams(
+                        -1, 0, 1
+                )
+        );
+
+        setContentView(root);
+
+        webView.loadUrl("file:///android_asset/index.html");
+    }
+
+    // MAIN ACTIVITY JAVASCRIPT BRIDGE
+
+    public class ActivityBridge {
+
+        @JavascriptInterface
+        public void discoverPeers() {
+            runOnUiThread(() -> MainActivity.this.discoverPeers());
+        }
+
+        @JavascriptInterface
+        public void createGroup() {
+            runOnUiThread(() -> MainActivity.this.createGroup());
+        }
+
+        @JavascriptInterface
+        public void connectSelectedDevice() {
+            runOnUiThread(() -> MainActivity.this.connectSelected());
+        }
+
+        @JavascriptInterface
+        public void sendMessage(String message) {
+            if (message == null || message.trim().isEmpty()) {
+                return;
+            }
+
+            runOnUiThread(() -> {
+                if (meshNode != null && meshNode.sendText(message.trim())) {
+                    messages.append("\nMe: " + message.trim());
+                } else {
+                    status.setText("No connected device");
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public String getBridgeStatus() {
+            return "CONNECTED";
+        }
+
+        @JavascriptInterface
+        public String getAppName() {
+            return "Offline Mesh Chat";
+        }
+    }
+
+    private void setupReceiver() {
+        receiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                String action = intent.getAction();
+
+                if (WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION.equals(action)) {
+                    int state = intent.getIntExtra(
+                            WifiP2pManager.EXTRA_WIFI_STATE, -1
+                    );
+
+                    status.setText(
+                            state == WifiP2pManager.WIFI_P2P_STATE_ENABLED
+                                    ? "Wi-Fi Direct enabled"
+                                    : "Wi-Fi Direct disabled"
+                    );
+
+                } else if (WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION.equals(action)) {
+                    requestPeers();
+
+                } else if (WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION.equals(action)) {
+                    requestConnectionInfo();
+                }
+            }
+        };
+
+        filter = new IntentFilter();
+        filter.addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION);
+        filter.addAction(WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION);
+        filter.addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION);
+        filter.addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION);
+    }
+
+    private void requestAppPermissions() {
+        List<String> permissions = new ArrayList<>();
+
+        if (Build.VERSION.SDK_INT >= 33) {
+            if (checkSelfPermission(Manifest.permission.NEARBY_WIFI_DEVICES)
+                    != PackageManager.PERMISSION_GRANTED) {
+                permissions.add(Manifest.permission.NEARBY_WIFI_DEVICES);
+            }
+        } else if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            permissions.add(Manifest.permission.ACCESS_FINE_LOCATION);
+        }
+
+        if (!permissions.isEmpty()) {
+            requestPermissions(
+                    permissions.toArray(new String[0]),
+                    PERMISSION_REQUEST
+            );
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(
+            int requestCode,
+            String[] permissions,
+            int[] grantResults
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (requestCode == PERMISSION_REQUEST) {
+            status.setText("Permission result received");
+        }
+    }
+
+    private void discoverPeers() {
+        if (manager == null || channel == null) return;
+
+        manager.discoverPeers(channel, new WifiP2pManager.ActionListener() {
+            @Override
+            public void onSuccess() {
+                status.setText("Searching nearby devices...");
+            }
+
+            @Override
+            public void onFailure(int reason) {
+                status.setText("Discovery failed: " + reason);
+            }
+        });
+    }
+
+    private void requestPeers() {
+        if (manager == null || channel == null) return;
+
+        manager.requestPeers(channel, peerList -> {
+            devices.clear();
+            devices.addAll(peerList.getDeviceList());
+
+            List<String> names = new ArrayList<>();
+
+            for (WifiP2pDevice device : devices) {
+                names.add(
+                        (TextUtils.isEmpty(device.deviceName)
+                                ? "Unknown device"
+                                : device.deviceName)
+                                + "\n" + device.deviceAddress
+                );
+            }
+
+            adapter.clear();
+            adapter.addAll(names);
+            adapter.notifyDataSetChanged();
+        });
+    }
+
+    private void createGroup() {
+        if (manager == null || channel == null) return;
+
+        manager.createGroup(channel, new WifiP2pManager.ActionListener() {
+            @Override
+            public void onSuccess() {
+                status.setText("Wi-Fi group created");
+            }
+
+            @Override
+            public void onFailure(int reason) {
+                status.setText("Group creation failed: " + reason);
+            }
+        });
+    }
+
+    private void connectSelected() {
+        if (selectedDevice == null) {
+            status.setText("Select a device first");
+            return;
+        }
+
+        WifiP2pConfig config = new WifiP2pConfig();
+        config.deviceAddress = selectedDevice.deviceAddress;
+
+        manager.connect(channel, config, new WifiP2pManager.ActionListener() {
+            @Override
+            public void onSuccess() {
+                status.setText("Connection request sent");
+            }
+
+            @Override
+            public void onFailure(int reason) {
+                status.setText("Connection failed: " + reason);
+            }
+        });
+    }
+
+    private void requestConnectionInfo() {
+        if (manager == null || channel == null) return;
+
+        manager.requestConnectionInfo(channel, info -> {
+            if (info != null && info.groupFormed && meshNode != null) {
+                status.setText(
+                        info.isGroupOwner
+                                ? "Connected: Group Owner"
+                                : "Connected to Group Owner"
+                );
+
+                meshNode.onConnectionInfoAvailable(info);
+            }
+        });
+    }
+
+    private void sendMessage() {
+        String text = input.getText().toString().trim();
+
+        if (text.isEmpty()) return;
+
+        if (meshNode != null && meshNode.sendText(text)) {
+            messages.append("\nMe: " + text);
+            input.setText("");
+        } else {
+            status.setText("No connected device");
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        if (receiver != null && !receiverRegistered) {
+            registerReceiver(receiver, filter);
+            receiverRegistered = true;
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+
+        if (receiverRegistered && receiver != null) {
+            unregisterReceiver(receiver);
+            receiverRegistered = false;
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+
+        if (meshNode != null) {
+            meshNode.close();
+            meshNode = null;
+        }
+    }
+}
