@@ -1,0 +1,306 @@
+package com.offlinemesh.chat;
+
+import android.app.Activity;
+import android.webkit.JavascriptInterface;
+import android.webkit.WebView;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+public class CallBridge {
+
+    public interface CallListener {
+        void onCallAction(String action, JSONObject data);
+    }
+
+    private final Activity activity;
+    private final WebView webView;
+    private final ExecutorService executor =
+            Executors.newSingleThreadExecutor();
+
+    private CallListener listener;
+
+    private boolean callActive = false;
+    private boolean microphoneEnabled = true;
+    private boolean cameraEnabled = true;
+    private boolean speakerEnabled = false;
+
+    private String callType = "";
+    private String callId = "";
+
+    public CallBridge(Activity activity, WebView webView) {
+        this.activity = activity;
+        this.webView = webView;
+    }
+
+    public void setCallListener(CallListener listener) {
+        this.listener = listener;
+    }
+
+    // AUDIO CALL
+    @JavascriptInterface
+    public void startAudioCall(String userId) {
+        startCall("audio", userId, false);
+    }
+
+    // VIDEO CALL
+    @JavascriptInterface
+    public void startVideoCall(String userId) {
+        startCall("video", userId, false);
+    }
+
+    // GROUP AUDIO CALL
+    @JavascriptInterface
+    public void startGroupAudioCall(String groupId) {
+        startCall("group_audio", groupId, true);
+    }
+
+    // GROUP VIDEO CALL
+    @JavascriptInterface
+    public void startGroupVideoCall(String groupId) {
+        startCall("group_video", groupId, true);
+    }
+
+    private void startCall(
+            String type,
+            String targetId,
+            boolean group
+    ) {
+        if (targetId == null || targetId.trim().isEmpty()) {
+            sendEvent("callError", "Invalid user or group ID");
+            return;
+        }
+
+        JSONObject data = new JSONObject();
+
+        try {
+            data.put("type", type);
+            data.put("targetId", targetId);
+            data.put("group", group);
+        } catch (Exception e) {
+            sendEvent("callError", e.getMessage());
+            return;
+        }
+
+        callType = type;
+        callId = String.valueOf(System.currentTimeMillis());
+
+        executeAction("startCall", data);
+    }
+
+    // ACCEPT CALL
+    @JavascriptInterface
+    public void acceptCall(String incomingCallId) {
+        JSONObject data = new JSONObject();
+
+        try {
+            data.put("callId", incomingCallId);
+        } catch (Exception ignored) {
+        }
+
+        executeAction("acceptCall", data);
+    }
+
+    // REJECT CALL
+    @JavascriptInterface
+    public void rejectCall(String incomingCallId) {
+        JSONObject data = new JSONObject();
+
+        try {
+            data.put("callId", incomingCallId);
+        } catch (Exception ignored) {
+        }
+
+        executeAction("rejectCall", data);
+    }
+
+    // END CALL
+    @JavascriptInterface
+    public void endCall() {
+        executeAction("endCall", new JSONObject());
+    }
+
+    // MICROPHONE
+    @JavascriptInterface
+    public void toggleMicrophone(boolean enabled) {
+        microphoneEnabled = enabled;
+
+        JSONObject data = new JSONObject();
+
+        try {
+            data.put("enabled", enabled);
+        } catch (Exception ignored) {
+        }
+
+        executeAction("toggleMicrophone", data);
+    }
+
+    // CAMERA
+    @JavascriptInterface
+    public void toggleCamera(boolean enabled) {
+        cameraEnabled = enabled;
+
+        JSONObject data = new JSONObject();
+
+        try {
+            data.put("enabled", enabled);
+        } catch (Exception ignored) {
+        }
+
+        executeAction("toggleCamera", data);
+    }
+
+    // SPEAKER
+    @JavascriptInterface
+    public void toggleSpeaker(boolean enabled) {
+        speakerEnabled = enabled;
+
+        JSONObject data = new JSONObject();
+
+        try {
+            data.put("enabled", enabled);
+        } catch (Exception ignored) {
+        }
+
+        executeAction("toggleSpeaker", data);
+    }
+
+    // SWITCH CAMERA
+    @JavascriptInterface
+    public void switchCamera() {
+        executeAction("switchCamera", new JSONObject());
+    }
+
+    // ADD GROUP MEMBER
+    @JavascriptInterface
+    public void addGroupMember(String userId) {
+        JSONObject data = new JSONObject();
+
+        try {
+            data.put("userId", userId);
+        } catch (Exception ignored) {
+        }
+
+        executeAction("addGroupMember", data);
+    }
+
+    // REMOVE GROUP MEMBER
+    @JavascriptInterface
+    public void removeGroupMember(String userId) {
+        JSONObject data = new JSONObject();
+
+        try {
+            data.put("userId", userId);
+        } catch (Exception ignored) {
+        }
+
+        executeAction("removeGroupMember", data);
+    }
+
+    // SEND ACTION TO CALL ENGINE
+    private void executeAction(
+            String action,
+            JSONObject data
+    ) {
+        executor.execute(() -> {
+            if (listener != null) {
+                activity.runOnUiThread(() -> {
+                    if (listener != null) {
+                        listener.onCallAction(action, data);
+                    }
+                });
+            } else {
+                sendEvent(
+                        "callError",
+                        "Call engine is not connected: " + action
+                );
+            }
+        });
+    }
+
+    // UPDATE CALL STATUS FROM JAVA
+    public void updateCallStatus(
+            String status,
+            String message
+    ) {
+        callActive = "connected".equals(status);
+
+        if ("ended".equals(status) ||
+                "rejected".equals(status) ||
+                "failed".equals(status)) {
+            callActive = false;
+        }
+
+        sendEvent(status, message);
+    }
+
+    // SEND GROUP MEMBERS
+    public void updateGroupMembers(JSONArray members) {
+        String json = members == null ? "[]" : members.toString();
+
+        webView.post(() ->
+                webView.evaluateJavascript(
+                        "window.onGroupMembersUpdated && " +
+                        "window.onGroupMembersUpdated(" + json + ");",
+                        null
+                )
+        );
+    }
+
+    // HTML EVENTS
+    private void sendEvent(String event, String message) {
+        String safeEvent = JSONObject.quote(event);
+        String safeMessage = JSONObject.quote(
+                message == null ? "" : message
+        );
+
+        String script =
+                "window.onCallBridgeEvent && " +
+                "window.onCallBridgeEvent(" +
+                safeEvent + "," + safeMessage + ");";
+
+        webView.post(() ->
+                webView.evaluateJavascript(script, null)
+        );
+    }
+
+    // GET CALL STATUS
+    @JavascriptInterface
+    public boolean isCallActive() {
+        return callActive;
+    }
+
+    @JavascriptInterface
+    public String getCallType() {
+        return callType;
+    }
+
+    @JavascriptInterface
+    public String getCallId() {
+        return callId;
+    }
+
+    @JavascriptInterface
+    public boolean isMicrophoneEnabled() {
+        return microphoneEnabled;
+    }
+
+    @JavascriptInterface
+    public boolean isCameraEnabled() {
+        return cameraEnabled;
+    }
+
+    @JavascriptInterface
+    public boolean isSpeakerEnabled() {
+        return speakerEnabled;
+    }
+
+    // RELEASE
+    public void release() {
+        executor.shutdownNow();
+        listener = null;
+    }
+}
