@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#101827">
+<title>Haye Call</title>
+
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background: #101827;
+    color: white;
+    min-height: 100vh;
+}
+
+.container {
+    max-width: 500px;
+    margin: auto;
+    padding: 20px;
+}
+
+.header {
+    text-align: center;
+    padding: 25px 10px;
+}
+
+.header h1 {
+    font-size: 28px;
+    color: #25d366;
+}
+
+.header p {
+    color: #aaa;
+    margin-top: 8px;
+}
+
+.call-screen {
+    background: #1c293a;
+    border-radius: 20px;
+    padding: 25px 15px;
+    text-align: center;
+    margin-top: 20px;
+}
+
+.avatar {
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    background: #263b50;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 45px;
+    margin: 15px auto;
+}
+
+#status {
+    color: #25d366;
+    font-size: 15px;
+    margin: 15px 0;
+}
+
+#timer {
+    font-size: 22px;
+    margin: 15px;
+}
+
+.video-container {
+    display: none;
+    width: 100%;
+    height: 400px;
+    background: black;
+    border-radius: 15px;
+    margin-top: 15px;
+    position: relative;
+    overflow: hidden;
+}
+
+video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.controls {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    margin-top: 25px;
+}
+
+button {
+    border: none;
+    border-radius: 15px;
+    padding: 17px 8px;
+    color: white;
+    background: #263b50;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+button:active {
+    opacity: 0.7;
+}
+
+.call-btn {
+    background: #16a34a;
+}
+
+.video-btn {
+    background: #2563eb;
+}
+
+.end-btn {
+    background: #dc2626;
+}
+
+.accept-btn {
+    background: #16a34a;
+}
+
+.danger {
+    background: #dc2626;
+}
+
+.incoming {
+    display: none;
+    background: #263b50;
+    padding: 20px;
+    margin-top: 20px;
+    border-radius: 15px;
+    text-align: center;
+}
+
+.incoming button {
+    margin: 12px 5px 0;
+}
+
+.footer {
+    text-align: center;
+    color: #777;
+    margin-top: 35px;
+    font-size: 12px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="header">
+        <h1>HAYE CALL</h1>
+        <p>Offline Audio & Video Calling</p>
+    </div>
+
+    <div class="call-screen">
+
+        <div class="avatar">☎</div>
+
+        <h2>Haye Calling</h2>
+
+        <p id="status">Ready to Call</p>
+
+        <div id="timer">00:00</div>
+
+        <div class="video-container" id="videoContainer">
+            <video id="remoteVideo" autoplay playsinline></video>
+        </div>
+
+    </div>
+
+    <div class="incoming" id="incomingCall">
+
+        <h3>Incoming Call</h3>
+
+        <p id="incomingType">Audio Call</p>
+
+        <button class="accept-btn" onclick="acceptCall()">
+            Accept
+        </button>
+
+        <button class="end-btn" onclick="rejectCall()">
+            Reject
+        </button>
+
+    </div>
+
+    <div class="controls">
+
+        <button class="call-btn" onclick="audioCall()">
+            📞 Audio Call
+        </button>
+
+        <button class="video-btn" onclick="videoCall()">
+            📹 Video Call
+        </button>
+
+        <button class="end-btn" onclick="endCall()">
+            ❌ End Call
+        </button>
+
+        <button onclick="toggleMute()" id="muteButton">
+            🎤 Mute
+        </button>
+
+        <button onclick="toggleSpeaker()" id="speakerButton">
+            🔊 Speaker
+        </button>
+
+        <button onclick="switchCamera()">
+            🔄 Camera
+        </button>
+
+        <button onclick="showVideo()">
+            📺 Full Screen
+        </button>
+
+    </div>
+
+    <div class="footer">
+        Haye Call • Private Calling Interface
+    </div>
+
+</div>
+
+<script>
+
+let callActive = false;
+let muted = false;
+let speaker = true;
+let seconds = 0;
+let timerInterval = null;
+
+function setStatus(message) {
+    document.getElementById("status").innerText = message;
+}
+
+function audioCall() {
+
+    if (!window.AndroidBridge) {
+        setStatus("Android Bridge Not Connected");
+        return;
+    }
+
+    AndroidBridge.startAudioCall();
+    setStatus("Calling...");
+}
+
+function videoCall() {
+
+    if (!window.AndroidBridge) {
+        setStatus("Android Bridge Not Connected");
+        return;
+    }
+
+    AndroidBridge.startVideoCall();
+
+    document.getElementById("videoContainer").style.display = "block";
+
+    setStatus("Starting Video Call...");
+}
+
+function acceptCall() {
+
+    if (!window.AndroidBridge) return;
+
+    AndroidBridge.acceptCall();
+
+    document.getElementById("incomingCall").style.display = "none";
+
+    setStatus("Connecting...");
+}
+
+function rejectCall() {
+
+    if (!window.AndroidBridge) return;
+
+    AndroidBridge.rejectCall();
+
+    document.getElementById("incomingCall").style.display = "none";
+
+    setStatus("Call Rejected");
+}
+
+function endCall() {
+
+    if (!window.AndroidBridge) return;
+
+    AndroidBridge.endCall();
+
+    callActive = false;
+
+    stopTimer();
+
+    setStatus("Call Ended");
+
+    document.getElementById("videoContainer").style.display = "none";
+}
+
+function toggleMute() {
+
+    if (!window.AndroidBridge) return;
+
+    muted = !muted;
+
+    AndroidBridge.setMuted(muted);
+
+    document.getElementById("muteButton").innerText =
+        muted ? "🔇 Unmute" : "🎤 Mute";
+}
+
+function toggleSpeaker() {
+
+    if (!window.AndroidBridge) return;
+
+    speaker = !speaker;
+
+    AndroidBridge.setSpeakerEnabled(speaker);
+
+    document.getElementById("speakerButton").innerText =
+        speaker ? "🔊 Speaker" : "🔈 Earpiece";
+}
+
+function switchCamera() {
+
+    if (!window.AndroidBridge) return;
+
+    AndroidBridge.switchCamera();
+}
+
+function showVideo() {
+
+    const video = document.getElementById("remoteVideo");
+
+    if (video.requestFullscreen) {
+        video.requestFullscreen();
+    }
+}
+
+function onIncomingCall(video) {
+
+    document.getElementById("incomingCall").style.display = "block";
+
+    document.getElementById("incomingType").innerText =
+        video ? "Incoming Video Call" : "Incoming Audio Call";
+
+    setStatus("Incoming Call...");
+}
+
+function onCallConnected() {
+
+    callActive = true;
+
+    setStatus("Connected");
+
+    startTimer();
+}
+
+function onCallEnded() {
+
+    callActive = false;
+
+    stopTimer();
+
+    setStatus("Call Ended");
+
+    document.getElementById("incomingCall").style.display = "none";
+
+    document.getElementById("videoContainer").style.display = "none";
+}
+
+function onCallError(message) {
+
+    setStatus("Error: " + message);
+}
+
+function startTimer() {
+
+    stopTimer();
+
+    seconds = 0;
+
+    timerInterval = setInterval(() => {
+
+        seconds++;
+
+        let minutes = Math.floor(seconds / 60);
+
+        let remaining = seconds % 60;
+
+        document.getElementById("timer").innerText =
+            String(minutes).padStart(2, "0") + ":" +
+            String(remaining).padStart(2, "0");
+
+    }, 1000);
+}
+
+function stopTimer() {
+
+    if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+    }
+
+    document.getElementById("timer").innerText = "00:00";
+}
+
+</script>
+
+</body>
+</html>
