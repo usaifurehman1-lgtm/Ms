@@ -1,0 +1,83 @@
+package com.offlinemesh.chat;
+
+import android.app.Activity;
+import android.webkit.JavascriptInterface;
+import android.webkit.WebView;
+
+import org.json.JSONObject;
+
+public class MeshBroadcastBridge
+        implements MeshBroadcastReceiver.Listener {
+
+    private final Activity activity;
+    private final WebView webView;
+
+    public MeshBroadcastBridge(
+            Activity activity,
+            WebView webView
+    ) {
+        this.activity = activity;
+        this.webView = webView;
+    }
+
+    // WIFI STATE CHANGED
+    @Override
+    public void onWifiStateChanged(boolean enabled) {
+
+        JSONObject data = new JSONObject();
+
+        try {
+            data.put("enabled", enabled);
+        } catch (Exception ignored) {
+        }
+
+        sendEvent("wifiStateChanged", data);
+    }
+
+    // PEERS CHANGED
+    @Override
+    public void onPeersChanged() {
+
+        sendEvent("peersChanged", new JSONObject());
+    }
+
+    // CONNECTION CHANGED
+    @Override
+    public void onConnectionChanged() {
+
+        sendEvent("connectionChanged", new JSONObject());
+    }
+
+    // DEVICE CHANGED
+    @Override
+    public void onDeviceChanged() {
+
+        sendEvent("deviceChanged", new JSONObject());
+    }
+
+    // SEND EVENT TO HTML
+    private void sendEvent(
+            String event,
+            JSONObject data
+    ) {
+
+        String script =
+                "window.onMeshBroadcastEvent && " +
+                "window.onMeshBroadcastEvent(" +
+                JSONObject.quote(event) + "," +
+                data.toString() +
+                ");";
+
+        activity.runOnUiThread(() ->
+                webView.evaluateJavascript(
+                        script,
+                        null
+                )
+        );
+    }
+
+    // RELEASE
+    public void release() {
+        // Receiver registration is managed separately.
+    }
+}
